@@ -5,6 +5,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from tqdm import tqdm
+from blur import GaussianSmoothing
+import random
 import time
 
 torch.manual_seed(1)
@@ -90,13 +92,41 @@ test_loader_vertical_cut = mnist_loader()
 test_loader_horizontal_cut = mnist_loader()
 test_loader_diagonal_cut = mnist_loader()
 test_loader_triple_cut = mnist_loader()
-
-
-
+test_loader_triple_cut_noise = mnist_loader()
+test_loader_triple_cut_replaced1 = mnist_loader()
+test_loader_triple_cut_replaced3 = mnist_loader()
+test_loader_triple_cut_blur = mnist_loader()
 
 print('Generating new test sets...')
 
-for num in tqdm(range(0, 10000)):
+
+def get_random_pairs(label):
+    while True:
+        pairs = []
+        while len(set(pairs)) != 3:
+            pairs = [random.randint(0, 10000 - 1) for i in range(3)]
+
+        got_duplicate_label = False
+        for pair in pairs:
+            if test_loader.dataset.test_labels[pair] == label:
+                got_duplicate_label = True
+
+        if got_duplicate_label:
+            continue
+        else:
+            return pairs
+
+
+smoothing = GaussianSmoothing(1, 5, 1)
+
+
+for num in tqdm(range(0, 500)):
+    random_pairs = get_random_pairs(test_loader.dataset.test_labels[num])
+
+    sample = test_loader_triple_cut_blur.dataset.test_data[num].type('torch.FloatTensor')
+    sample = F.pad(sample.reshape(1, 1, 28, 28), (2, 2, 2, 2), mode='reflect')
+    blur = smoothing(sample).reshape(28, 28)
+
     for x in range(28):
         for y in range(28):
             if y < 14:
@@ -105,21 +135,44 @@ for num in tqdm(range(0, 10000)):
                 test_loader_horizontal_cut.dataset.test_data[num, x, y] = 0
             if (x < 14 and y > 14) or (x > 14 and y < 14):
                 test_loader_diagonal_cut.dataset.test_data[num, x, y] = 0
-            if (5 < x < 15 and 5 <  y < 15) or (17 < x < 27 and 10 < y < 20) or (7 <  x < 17 and 16 < y < 26):
+            if (5 < x < 15 and 5 <  y < 15) or (17 < x < 27 and 10 < y < 20) or (7 < x < 17 and 16 < y < 26):
                 test_loader_triple_cut.dataset.test_data[num, x, y] = 0
+                test_loader_triple_cut_noise.dataset.test_data[num, x, y] = random.randint(0, 255)
+                test_loader_triple_cut_replaced1.dataset.test_data[num, x, y] = test_loader.dataset.test_data[
+                    random_pairs[0], x, y]
+                test_loader_triple_cut_blur.dataset.test_data[num, x, y] = blur[x, y]
 
-# import matplotlib.pyplot as plt
+                if 5 < x < 15 and 5 < y < 15:
+                    test_loader_triple_cut_replaced3.dataset.test_data[num, x, y] = test_loader.dataset.test_data[
+                        random_pairs[0], x, y]
+                elif 17 < x < 27 and 10 < y < 20:
+                    test_loader_triple_cut_replaced3.dataset.test_data[num, x, y] = test_loader.dataset.test_data[
+                        random_pairs[1], x, y]
+                elif 7 < x < 17 and 16 < y < 26:
+                    test_loader_triple_cut_replaced3.dataset.test_data[num, x, y] = test_loader.dataset.test_data[
+                        random_pairs[2], x, y]
 
-# plt.imshow(test_loader.dataset.test_data[343], cmap='gray')
-# plt.show()
+import matplotlib.pyplot as plt
+
+plt.imshow(test_loader.dataset.test_data[343], cmap='gray')
+plt.show()
 # plt.imshow(test_loader_vertical_cut.dataset.test_data[343], cmap='gray')
 # plt.show()
 # plt.imshow(test_loader_horizontal_cut.dataset.test_data[343], cmap='gray')
 # plt.show()
 # plt.imshow(test_loader_diagonal_cut.dataset.test_data[343], cmap='gray')
 # plt.show()
-# plt.imshow(test_loader_triple_cut.dataset.test_data[343], cmap='gray')
-# plt.show()
+plt.imshow(test_loader_triple_cut.dataset.test_data[343], cmap='gray')
+plt.show()
+plt.imshow(test_loader_triple_cut_noise.dataset.test_data[343], cmap='gray')
+plt.show()
+plt.imshow(test_loader_triple_cut_replaced1.dataset.test_data[343], cmap='gray')
+plt.show()
+plt.imshow(test_loader_triple_cut_replaced3.dataset.test_data[343], cmap='gray')
+plt.show()
+plt.imshow(test_loader_triple_cut_blur.dataset.test_data[343], cmap='gray')
+plt.show()
+
 
 # import sys
 # sys.exit(0)
