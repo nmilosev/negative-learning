@@ -120,7 +120,7 @@ def get_random_pairs(label):
 smoothing = GaussianSmoothing(1, 5, 1)
 
 
-for num in tqdm(range(0, 500)):
+for num in tqdm(range(0, 10000)):
     random_pairs = get_random_pairs(test_loader.dataset.test_labels[num])
 
     sample = test_loader_triple_cut_blur.dataset.test_data[num].type('torch.FloatTensor')
@@ -152,26 +152,26 @@ for num in tqdm(range(0, 500)):
                     test_loader_triple_cut_replaced3.dataset.test_data[num, x, y] = test_loader.dataset.test_data[
                         random_pairs[2], x, y]
 
-import matplotlib.pyplot as plt
-
-plt.imshow(test_loader.dataset.test_data[343], cmap='gray')
-plt.show()
-# plt.imshow(test_loader_vertical_cut.dataset.test_data[343], cmap='gray')
+# import matplotlib.pyplot as plt
+#
+# plt.imshow(test_loader.dataset.test_data[343], cmap='gray')
 # plt.show()
-# plt.imshow(test_loader_horizontal_cut.dataset.test_data[343], cmap='gray')
+# # plt.imshow(test_loader_vertical_cut.dataset.test_data[343], cmap='gray')
+# # plt.show()
+# # plt.imshow(test_loader_horizontal_cut.dataset.test_data[343], cmap='gray')
+# # plt.show()
+# # plt.imshow(test_loader_diagonal_cut.dataset.test_data[343], cmap='gray')
+# # plt.show()
+# plt.imshow(test_loader_triple_cut.dataset.test_data[343], cmap='gray')
 # plt.show()
-# plt.imshow(test_loader_diagonal_cut.dataset.test_data[343], cmap='gray')
+# plt.imshow(test_loader_triple_cut_noise.dataset.test_data[343], cmap='gray')
 # plt.show()
-plt.imshow(test_loader_triple_cut.dataset.test_data[343], cmap='gray')
-plt.show()
-plt.imshow(test_loader_triple_cut_noise.dataset.test_data[343], cmap='gray')
-plt.show()
-plt.imshow(test_loader_triple_cut_replaced1.dataset.test_data[343], cmap='gray')
-plt.show()
-plt.imshow(test_loader_triple_cut_replaced3.dataset.test_data[343], cmap='gray')
-plt.show()
-plt.imshow(test_loader_triple_cut_blur.dataset.test_data[343], cmap='gray')
-plt.show()
+# plt.imshow(test_loader_triple_cut_replaced1.dataset.test_data[343], cmap='gray')
+# plt.show()
+# plt.imshow(test_loader_triple_cut_replaced3.dataset.test_data[343], cmap='gray')
+# plt.show()
+# plt.imshow(test_loader_triple_cut_blur.dataset.test_data[343], cmap='gray')
+# plt.show()
 
 
 # import sys
@@ -267,7 +267,10 @@ for epoch in range(11, 20 + 1):
 models = [model_normal, model_negative_relu, model_hybrid, model_hybrid_nr, model_hybrid_alt]
 model_names = ['Normal:', 'HCUT:', 'VCUT:', 'DCUT:', 'TCUT:']
 
-datasets = [test_loader, test_loader_horizontal_cut, test_loader_vertical_cut, test_loader_diagonal_cut, test_loader_triple_cut]
+datasets = [test_loader, test_loader_horizontal_cut, test_loader_vertical_cut,
+            test_loader_diagonal_cut, test_loader_triple_cut, test_loader_triple_cut_blur,
+            test_loader_triple_cut_noise, test_loader_triple_cut_replaced1,
+            test_loader_triple_cut_replaced3]
 
 for i, dataset in enumerate(datasets):
     print('Testing -- ' + model_names[i])
