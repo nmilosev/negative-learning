@@ -133,7 +133,7 @@ for num in tqdm(range(0, 10000)):
                 test_loader_horizontal_cut.dataset.test_data[num, x, y] = 0
             if (x < 14 and y > 14) or (x > 14 and y < 14):
                 test_loader_diagonal_cut.dataset.test_data[num, x, y] = 0
-            if (5 < x < 15 and 5 <  y < 15) or (17 < x < 27 and 10 < y < 20) or (7 <  x < 17 and 16 < y < 26):
+            if (5 < x < 15 and 5 <  y < 15) or (17 < x < 27 and 10 < y < 20) or (7 < x < 17 and 16 < y < 26):
                 test_loader_triple_cut.dataset.test_data[num, x, y] = 0
 
 model_synergy = Net('normal').to(device)
@@ -162,13 +162,10 @@ for epoch in range(11, 20 + 1):
     train(model_synergy, device, train_loader, optimizer_synergy, epoch)
 
 # next 10 epochs are going to be for normal part
-# reset last layer
-model_synergy.fc2 = nn.Linear(HIDDEN, 10).cuda()
 model_synergy.synergy = 'normal'
 model_synergy.net_type = 'normal'
 # reinitialize the optimizer with new params
 optimizer_synergy = optim.SGD(filter(lambda p: p.requires_grad, model_synergy.parameters()), lr=LR, momentum=MOM)
-
 
 for epoch in range(21, 30 + 1):
     train(model_synergy, device, train_loader, optimizer_synergy, epoch)
@@ -192,7 +189,6 @@ for i, dataset in enumerate(datasets):
     test(model_synergy, device, dataset)
 
 model_synergy.synergy = 'synergy'
-
 for i, dataset in enumerate(datasets):
     print('Testing (synergy) -- ' + model_names[i])
     test(model_synergy, device, dataset)
