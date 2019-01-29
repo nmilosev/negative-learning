@@ -25,6 +25,10 @@ class Net(nn.Module):
         self.fc1negative = nn.Linear(320, HIDDEN)
 
         self.fc2 = nn.Linear(HIDDEN, 10)
+
+        self.fc2normal = nn.Linear(HIDDEN, 10)
+        self.fc2negative = nn.Linear(HIDDEN, 10)
+
         self.net_type = net_type
 
         self.synergy = 'inactive';
@@ -33,24 +37,33 @@ class Net(nn.Module):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = x.view(-1, 320)
-        if self.net_type == 'hybrid':
-            x = torch.ones_like(x).add(x.neg())
 
         if self.synergy == 'synergy':
-            x1 = F.relu(self.fc1normal(x))
-            x2 = F.relu(self.fc1negative(x))
+            x1 = x
+            x2 = torch.ones_like(x).add(x.neg())
+
+            x1 = F.relu(self.fc1normal(x1))
+            x2 = F.relu(self.fc1negative(x2))
+
+            x1 = F.dropout(x1, training=self.training)
+            x2 = F.dropout(x2, training=self.training)
+
+            x1 = self.fc2normal(x1)
+            x2 = self.fc2negative(x2)
 
             x = x1 + x2
-        else:
-            if self.synergy == 'inactive':
-                x = F.relu(self.fc1(x))
-            elif self.synergy == 'normal':
-                x = F.relu(self.fc1normal(x))
-            elif self.synergy == 'negative':
-                x = F.relu(self.fc1negative(x))
 
-        x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
+        else:
+
+            if self.net_type == 'negative':
+                x = torch.ones_like(x).add(x.neg())
+
+            if self.synergy == 'inactive':
+                x = self.fc2(F.dropout(F.relu(self.fc1(x)), training=self.training))
+            elif self.synergy == 'normal':
+                x = self.fc2normal(F.dropout(F.relu(self.fc1normal(x)), training=self.training))
+            elif self.synergy == 'negative':
+                x = self.fc2negative(F.dropout(F.relu(self.fc1negative(x)), training=self.training))
 
         return F.log_softmax(x, dim=1)
 
@@ -133,7 +146,7 @@ for epoch in range(1, 10 + 1):
     train(model_synergy, device, train_loader, optimizer_synergy, epoch)
 
 # change network type
-model_synergy.net_type = 'hybrid'
+model_synergy.net_type = 'negative'
 # reinitialize fully connected layers
 model_synergy.fc1 = nn.Linear(320, HIDDEN).cuda()
 model_synergy.fc2 = nn.Linear(HIDDEN, 10).cuda()
@@ -168,9 +181,21 @@ model_names = ['Normal:', 'HCUT:', 'VCUT:', 'DCUT:', 'TCUT:']
 datasets = [test_loader, test_loader_horizontal_cut, test_loader_vertical_cut, test_loader_diagonal_cut, test_loader_triple_cut]
 
 for i, dataset in enumerate(datasets):
-    print('Testing -- ' + model_names[i])
-    for model in models:
-        test(model, device, dataset)
+    print('Testing (fc1normal active only) -- ' + model_names[i])
+    test(model_synergy, device, dataset)
+
+model_synergy.synergy = 'negative'
+model_synergy.net_type = 'negative'
+
+for i, dataset in enumerate(datasets):
+    print('Testing (fc1negative active only) -- ' + model_names[i])
+    test(model_synergy, device, dataset)
+
+model_synergy.synergy = 'synergy'
+
+for i, dataset in enumerate(datasets):
+    print('Testing (synergy) -- ' + model_names[i])
+    test(model_synergy, device, dataset)
 
 print('--- Total time: %s seconds ---' % (time.time() - start_time))
 
