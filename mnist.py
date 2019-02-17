@@ -1,8 +1,8 @@
 from __future__ import print_function
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
+import torch.nn.functional as F
 from torchvision import datasets, transforms
 from tqdm import tqdm
 import time
@@ -34,22 +34,16 @@ class Net(nn.Module):
         self.synergy = 'inactive';
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = torch.relu(F.max_pool2d(self.conv1(x), 2))
+        x = torch.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = x.view(-1, 320)
 
         if self.synergy == 'synergy':
-            x1 = x
-            x2 = torch.ones_like(x).add(x.neg())
 
-            x1 = F.relu(self.fc1normal(x1))
-            x2 = F.relu(self.fc1negative(x2))
+            negative = torch.ones_like(x).add(x.neg())
 
-            x1 = F.dropout(x1, training=self.training)
-            x2 = F.dropout(x2, training=self.training)
-
-            x1 = self.fc2normal(x1)
-            x2 = self.fc2negative(x2)
+            x1 = self.fc2normal(F.dropout(torch.tanh(self.fc1normal(x)), training=self.training))
+            x2 = self.fc2negative(F.dropout(torch.tanh(self.fc1negative(negative)), training=self.training))
 
             x = x1 + x2
 
@@ -57,15 +51,15 @@ class Net(nn.Module):
 
             if self.net_type == 'negative':
                 x = torch.ones_like(x).add(x.neg())
-
+            
             if self.synergy == 'inactive':
-                x = self.fc2(F.dropout(F.relu(self.fc1(x)), training=self.training))
+                x = self.fc2(F.dropout(torch.tanh(self.fc1(x)), training=self.training))
             elif self.synergy == 'normal':
-                x = self.fc2normal(F.dropout(F.relu(self.fc1normal(x)), training=self.training))
+                x = self.fc2normal(F.dropout(torch.tanh(self.fc1normal(x)), training=self.training))
             elif self.synergy == 'negative':
-                x = self.fc2negative(F.dropout(F.relu(self.fc1negative(x)), training=self.training))
+                x = self.fc2negative(F.dropout(torch.tanh(self.fc1negative(x)), training=self.training))
 
-        return F.log_softmax(x, dim=1)
+        return torch.log_softmax(x, dim=1)
 
 
 def train(model, device, train_loader, optimizer, epoch):
@@ -78,8 +72,8 @@ def train(model, device, train_loader, optimizer, epoch):
         loss.backward()
         optimizer.step()
         if batch_idx % 100 == 0:
-            print('[{}] Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                model.net_type, epoch, batch_idx * len(data), len(train_loader.dataset),
+            print('[net_type: {}, synergy: {}] Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                model.net_type, model.synergy, epoch, batch_idx * len(data), len(train_loader.dataset),
                                        100. * batch_idx / len(train_loader), loss.item()))
 
 
@@ -96,8 +90,8 @@ def test(model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
-    print('[{}] Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-        model.net_type, test_loss, correct, len(test_loader.dataset),
+    print('[net_type: {}, synergy: {}] Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+        model.net_type, model.synergy, test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
 
@@ -112,7 +106,7 @@ def mnist_loader(train=False):
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])),
-        batch_size=64 if train else 1000, shuffle=True, **kwargs)
+        batch_size=64 if train else 1, shuffle=False, **kwargs)
 
 
 train_loader = mnist_loader(train=True)
@@ -173,24 +167,24 @@ for epoch in range(21, 30 + 1):
 # Testing:
 
 models = [model_synergy]
-model_names = ['Normal:', 'HCUT:', 'VCUT:', 'DCUT:', 'TCUT:']
+dataset_names = ['Normal:', 'HCUT:', 'VCUT:', 'DCUT:', 'TCUT:']
 
 datasets = [test_loader, test_loader_horizontal_cut, test_loader_vertical_cut, test_loader_diagonal_cut, test_loader_triple_cut]
 
 for i, dataset in enumerate(datasets):
-    print('Testing (fc1normal active only) -- ' + model_names[i])
+    print('Testing (fc1normal active only) -- ' + dataset_names[i])
     test(model_synergy, device, dataset)
 
 model_synergy.synergy = 'negative'
 model_synergy.net_type = 'negative'
 
 for i, dataset in enumerate(datasets):
-    print('Testing (fc1negative active only) -- ' + model_names[i])
+    print('Testing (fc1negative active only) -- ' + dataset_names[i])
     test(model_synergy, device, dataset)
 
 model_synergy.synergy = 'synergy'
 for i, dataset in enumerate(datasets):
-    print('Testing (synergy) -- ' + model_names[i])
+    print('Testing (synergy) -- ' + dataset_names[i])
     test(model_synergy, device, dataset)
 
 print('--- Total time: %s seconds ---' % (time.time() - start_time))
@@ -198,3 +192,43 @@ print('--- Total time: %s seconds ---' % (time.time() - start_time))
 torch.save(model_synergy, 'models/model_synergy.pytorch')
 
 print('models saved to "models"')
+
+print('testing false positives etc.')
+
+def test_csv(model, device, test_loader, writer):
+    model.eval()
+    index = 1
+    with torch.no_grad():
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+
+            correct = target.item()
+
+            model_synergy.synergy = 'normal'
+            model_synergy.net_type = 'normal'
+
+            output_normal = model(data).max(1, keepdim=True)[1].item()
+
+            model_synergy.synergy = 'negative'
+            model_synergy.net_type = 'negative'
+
+            output_negative = model(data).max(1, keepdim=True)[1].item()
+
+            model_synergy.synergy = 'synergy'
+
+            output_synergy = model(data).max(1, keepdim=True)[1].item()
+            if not (correct == output_normal == output_negative == output_synergy):
+                writer.writerow([index, correct, output_normal, output_negative, output_synergy])
+
+            index += 1
+
+import csv
+
+with open('out.csv', 'w') as csv_file:
+    writer = csv.writer(csv_file, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(['#', 'correct-label', 'normal-prediction', 'negative-prediction', 'synergy-prediction'])
+    for i, dataset in enumerate(datasets):
+        writer.writerow([f'Dataset: {dataset_names[i]}'])
+        test_csv(model_synergy, device, dataset, writer)
+
+
