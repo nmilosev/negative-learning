@@ -1,8 +1,8 @@
 from __future__ import print_function
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
+import torch.nn.functional as F
 from torchvision import datasets, transforms
 from tqdm import tqdm
 import time
@@ -34,22 +34,16 @@ class Net(nn.Module):
         self.synergy = 'inactive';
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = torch.relu(F.max_pool2d(self.conv1(x), 2))
+        x = torch.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = x.view(-1, 320)
 
         if self.synergy == 'synergy':
-            x1 = x
-            x2 = x.neg()
 
-            x1 = F.tanh(self.fc1normal(x1))
-            x2 = F.tanh(self.fc1negative(x2))
+            negative = torch.ones_like(x).add(x.neg())
 
-            x1 = F.dropout(x1, training=self.training)
-            x2 = F.dropout(x2, training=self.training)
-
-            x1 = self.fc2normal(x1)
-            x2 = self.fc2negative(x2)
+            x1 = self.fc2normal(F.dropout(torch.tanh(self.fc1normal(x)), training=self.training))
+            x2 = self.fc2negative(F.dropout(torch.tanh(self.fc1negative(negative)), training=self.training))
 
             x = x1 + x2
 
@@ -57,14 +51,15 @@ class Net(nn.Module):
 
             if self.net_type == 'negative':
                 x = torch.ones_like(x).add(x.neg())
+            
             if self.synergy == 'inactive':
-                x = self.fc2(F.dropout(F.tanh(self.fc1(x)), training=self.training))
+                x = self.fc2(F.dropout(torch.tanh(self.fc1(x)), training=self.training))
             elif self.synergy == 'normal':
-                x = self.fc2normal(F.dropout(F.tanh(self.fc1normal(x)), training=self.training))
+                x = self.fc2normal(F.dropout(torch.tanh(self.fc1normal(x)), training=self.training))
             elif self.synergy == 'negative':
-                x = self.fc2negative(F.dropout(F.tanh(self.fc1negative(x)), training=self.training))
+                x = self.fc2negative(F.dropout(torch.tanh(self.fc1negative(x)), training=self.training))
 
-        return F.log_softmax(x, dim=1)
+        return torch.log_softmax(x, dim=1)
 
 
 def train(model, device, train_loader, optimizer, epoch):
@@ -222,7 +217,7 @@ def test_csv(model, device, test_loader, writer):
             model_synergy.synergy = 'synergy'
 
             output_synergy = model(data).max(1, keepdim=True)[1].item()
-            if correct != output_normal != output_negative != output_synergy:
+            if not (correct == output_normal == output_negative == output_synergy):
                 writer.writerow([index, correct, output_normal, output_negative, output_synergy])
 
             index += 1
