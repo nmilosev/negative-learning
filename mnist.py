@@ -1,23 +1,27 @@
 from __future__ import print_function
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
+import numpy as np
 from tqdm import tqdm
 import time
 
-torch.manual_seed(1)
-#torch.backends.cudnn.deterministic = True
-#torch.backends.cudnn.benchmark = False
-#import numpy as np
-#np.random.seed(0)
+torch.manual_seed(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+np.random.seed(42)
 
 LR = 0.01
 MOM = 0.5
 HIDDEN = 500
-NUM_CLASSES = 10
 CONV_OUT = 4 * 4 * 50
+NUM_CLASSES = 10
+
+if '--emnist' in sys.argv:
+    NUM_CLASSES = 62
 
 class Net(nn.Module):
     def __init__(self, net_type):
@@ -64,7 +68,7 @@ def test(model, device, test_loader):
             data, target = data.to(device), target.to(device)
             output = model(data)
             test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.max(1, keepdim=True)[1]  # get the index of the max log-probability
+            pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
@@ -97,6 +101,10 @@ def emnist_loader(split='mnist'):
 
 loader = mnist_loader
     
+if '--emnist' in sys.argv:
+    loader = emnist_loader()
+    print('using emnist loader')
+
 train_loader = loader(train=True)
 test_loader = loader()
 test_loader_vertical_cut = loader()
