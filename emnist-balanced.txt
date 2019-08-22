@@ -1,0 +1,31 @@
+Testing -- Normal:                                                                                                             [1/1881]
+[normal] Test set: Average loss: 0.3774, Accuracy: 16383/18800 (87%)
+[negative_relu] Test set: Average loss: 0.3568, Accuracy: 16472/18800 (88%)
+[hybrid] Test set: Average loss: 0.3781, Accuracy: 16428/18800 (87%)
+[hybrid_nr] Test set: Average loss: 0.3784, Accuracy: 16314/18800 (87%)
+[hybrid_alt] Test set: Average loss: 0.3795, Accuracy: 16259/18800 (86%)
+Testing -- HCUT:
+[normal] Test set: Average loss: 3.9067, Accuracy: 3939/18800 (21%)
+[negative_relu] Test set: Average loss: 3.3938, Accuracy: 5071/18800 (27%)
+[hybrid] Test set: Average loss: 3.2840, Accuracy: 4951/18800 (26%)
+[hybrid_nr] Test set: Average loss: 4.2558, Accuracy: 3633/18800 (19%)
+[hybrid_alt] Test set: Average loss: 2.9361, Accuracy: 4987/18800 (27%)
+Testing -- VCUT:
+[normal] Test set: Average loss: 4.5382, Accuracy: 4179/18800 (22%)
+[negative_relu] Test set: Average loss: 5.4274, Accuracy: 3764/18800 (20%)
+[hybrid] Test set: Average loss: 5.0072, Accuracy: 4172/18800 (22%)
+[hybrid_nr] Test set: Average loss: 5.2701, Accuracy: 3666/18800 (20%)
+[hybrid_alt] Test set: Average loss: 4.0305, Accuracy: 4580/18800 (24%)
+Testing -- DCUT:
+[normal] Test set: Average loss: 3.7049, Accuracy: 5247/18800 (28%)
+[negative_relu] Test set: Average loss: 3.5388, Accuracy: 5666/18800 (30%)
+[hybrid] Test set: Average loss: 3.5645, Accuracy: 5789/18800 (31%)
+[hybrid_nr] Test set: Average loss: 4.0258, Accuracy: 4851/18800 (26%)
+[hybrid_alt] Test set: Average loss: 3.3758, Accuracy: 5044/18800 (27%)
+Testing -- TCUT:
+[normal] Test set: Average loss: 4.3391, Accuracy: 3833/18800 (20%)
+[negative_relu] Test set: Average loss: 4.0592, Accuracy: 4301/18800 (23%)
+[hybrid] Test set: Average loss: 4.4328, Accuracy: 3962/18800 (21%)
+[hybrid_nr] Test set: Average loss: 4.2353, Accuracy: 4100/18800 (22%)
+[hybrid_alt] Test set: Average loss: 4.1465, Accuracy: 3728/18800 (20%)
+

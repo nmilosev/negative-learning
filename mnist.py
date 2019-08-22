@@ -20,8 +20,8 @@ HIDDEN = 500
 CONV_OUT = 4 * 4 * 50
 NUM_CLASSES = 10
 
-if '--emnist' in sys.argv:
-    NUM_CLASSES = 62
+if '--emnist' or '--emnist-letters' in sys.argv:
+    NUM_CLASSES = 47
 
 class Net(nn.Module):
     def __init__(self, net_type):
@@ -89,7 +89,7 @@ def mnist_loader(train=False):
         ])),
         batch_size=64 if train else 1000, shuffle=True, **kwargs)
 
-def emnist_loader(split='mnist'):
+def emnist_loader(split='balanced'):
     def _loader(train=False):
         return torch.utils.data.DataLoader(
            datasets.EMNIST('../data', split=split, download=True, train=train, transform=transforms.Compose([
@@ -104,6 +104,15 @@ loader = mnist_loader
 if '--emnist' in sys.argv:
     loader = emnist_loader()
     print('using emnist loader')
+elif '--emnist-letters' in sys.argv:
+    loader = emnist_loader('letters')
+    print('using emnist-letters loader')
+elif '--emnist-digits' in sys.argv:
+    loader = emnist_loader('digits')
+    print('using emnist-digits loader')
+elif '--emnist-mnist' in sys.argv:
+    loader = emnist_loader('mnist')
+    print('using emnist-mnist loader')
 
 train_loader = loader(train=True)
 test_loader = loader()
