@@ -11,7 +11,7 @@ This repository contains the accompanying code for paper "Classification Based o
 # Running
 
 ```
-python mnist.py [--emnist] [--emnist-mnist] [--emnist-balanced]
+python mnist.py [--emnist] [--emnist-mnist]
 ```
 
 # Example outputs
